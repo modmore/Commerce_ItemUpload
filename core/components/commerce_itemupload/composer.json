@@ -1,0 +1,16 @@
+{
+    "name": "modmore/commerce-itemupload",
+    "version": "1.0.0-pl",
+    "description": "Commerce module that allows customers to upload files that are attached to order items and included in order emails",
+    "type": "modx-component",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "modmore\\Commerce_ItemUpload\\": "src/Modules/"
+        }
+    }
+}
+

@@ -1,0 +1,18 @@
+# MODX
+config.core.php
+
+# Build
+_packages/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
