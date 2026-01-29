@@ -14,7 +14,8 @@ if ($object->xpdo) {
             if ($commerce instanceof Commerce) {
                 // Grab the path to our namespaced files
                 $basePath = $modx->getOption('core_path') . 'components/commerce_itemupload/';
-                $modulePath = $basePath . 'src/Modules/';
+                include $basePath . 'vendor/autoload.php';
+                $modulePath = $basePath . 'src/';
                 // Instruct Commerce to load modules from our directory, providing the base namespace and module path twice
                 $commerce->loadModulesFromDirectory($modulePath, 'modmore\\Commerce_ItemUpload\\', $modulePath);
                 $modx->log(modX::LOG_LEVEL_INFO, 'Synchronised modules.');

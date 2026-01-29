@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'modmore\\Commerce_ItemUpload\\' => array($baseDir . '/src/Modules'),
+    'modmore\\Commerce_ItemUpload\\' => array($baseDir . '/src'),
 );

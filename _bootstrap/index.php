@@ -83,7 +83,7 @@ if (file_exists($autoloadPath)) {
 }
 
 // Grab the path to our namespaced files
-$modulePath = $componentPath . '/core/components/commerce_itemupload/src/Modules/';
+$modulePath = $componentPath . '/core/components/commerce_itemupload/src/';
 
 // Instruct Commerce to load modules from our directory, providing the base namespace and module path twice
 $commerce->loadModulesFromDirectory($modulePath, 'modmore\\Commerce_ItemUpload\\', $modulePath);

@@ -12,6 +12,8 @@ use modmore\Commerce\Events\Mail;
 use modmore\Commerce\Modules\BaseModule;
 use modmore\Commerce\Dispatcher\EventDispatcher;
 
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
 class ItemUpload extends BaseModule
 {
     /** @var \modMediaSource|null Cached media source instance */

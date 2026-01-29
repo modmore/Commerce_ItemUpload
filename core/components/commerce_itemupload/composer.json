@@ -9,7 +9,7 @@
     },
     "autoload": {
         "psr-4": {
-            "modmore\\Commerce_ItemUpload\\": "src/Modules/"
+            "modmore\\Commerce_ItemUpload\\": "src/"
         }
     }
 }

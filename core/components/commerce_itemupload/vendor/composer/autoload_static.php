@@ -16,7 +16,7 @@ class ComposerStaticInit4bf22ca2eb1a4532fc1755ea0221a1d3
     public static $prefixDirsPsr4 = array (
         'modmore\\Commerce_ItemUpload\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/src/Modules',
+            0 => __DIR__ . '/../..' . '/src',
         ),
     );
 
