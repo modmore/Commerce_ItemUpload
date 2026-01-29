@@ -82,10 +82,10 @@ class ItemUpload extends BaseModule
                 // Store the file path in item properties
                 $item->setProperty('upload_' . $fieldName, $result['path']);
                 $item->setProperty('upload_' . $fieldName . '_full', $this->getFileUrl($result['path']));
+                $item->setProperty('upload_' . $fieldName . '_original', $result['original_name']);
                 $item->save();
             } else {
                 // Log the error
-                $this->adapter->loadLexicon('commerce_itemupload:default');
                 $this->adapter->log(
                     \modX::LOG_LEVEL_ERROR,
                     $this->adapter->lexicon('commerce_itemupload.error.upload_failed', [
@@ -123,9 +123,7 @@ class ItemUpload extends BaseModule
         $items = $order->getItems();
         $uploadFields = $this->getUploadFieldNames();
 
-        // Get allowed product IDs (if configured)
-        $allowedProductIds = $this->getAllowedProductIds();
-
+        // For each item, add whatever attachments there are
         foreach ($items as $item) {
             foreach ($uploadFields as $fieldName) {
                 $uploadPath = $item->getProperty('upload_' . $fieldName);
@@ -172,6 +170,7 @@ class ItemUpload extends BaseModule
                         'field' => $fieldName,
                         'path' => $uploadPath,
                         'url' => $fileUrl,
+                        'original_name' => $item->getProperty('upload_' . $fieldName . '_original'),
                         'filename' => basename($uploadPath)
                     ];
                 }
@@ -180,7 +179,7 @@ class ItemUpload extends BaseModule
 
         if (!empty($uploads)) {
             $this->adapter->loadLexicon('commerce_itemupload:default');
-            $output = '<div class="commerce-itemupload-uploads"><h4>' . $this->adapter->lexicon('commerce_itemupload.uploaded_files') . '</h4><ul>';
+            $output = '<div class="commerce-itemupload-uploads"><ul>';
 
             foreach ($uploads as $upload) {
                 $fieldLabel = $upload['field'];
@@ -193,7 +192,7 @@ class ItemUpload extends BaseModule
                 $output .= '<li>';
                 $output .= '<strong>' . htmlspecialchars($fieldLabel) . ':</strong> ';
                 $output .= '<a href="' . htmlspecialchars($upload['url']) . '" target="_blank" rel="noopener">';
-                $output .= htmlspecialchars($upload['filename']);
+                $output .= htmlspecialchars($upload['original_name']);
                 $output .= '</a>';
                 $output .= '</li>';
             }
@@ -427,7 +426,7 @@ class ItemUpload extends BaseModule
         // Generate secure filename
         $originalName = pathinfo($file['name'], PATHINFO_FILENAME);
         $sanitizedFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalName);
-        $filename = $sanitizedFilename . '_' . time() . '_' . uniqid() . '.' . $extension;
+        $filename = strtolower($sanitizedFilename) . '_' . time() . '_' . uniqid() . '.' . $extension;
 
         // Get upload directory path (relative path within media source)
         $uploadPath = $this->getConfig('upload_path', 'uploads/commerce/');

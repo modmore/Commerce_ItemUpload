@@ -23,7 +23,7 @@ if (!defined('MOREPROVIDER_BUILD')) {
     /* define version */
     define('PKG_NAME', 'Commerce_ItemUpload');
     define('PKG_NAMESPACE', 'commerce_itemupload');
-    define('PKG_VERSION', '0.1.0');
+    define('PKG_VERSION', '0.1.1');
     define('PKG_RELEASE', 'pl');
 
     /* load modx */

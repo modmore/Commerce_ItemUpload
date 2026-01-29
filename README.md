@@ -59,6 +59,21 @@ The module automatically attaches uploaded files to order emails based on the co
 - The order email has a message_key that matches one of the configured message keys (or all emails if no keys are configured)
 - The uploaded file path is valid and the file exists
 
+### Show in Cart
+
+To show the uploaded file in the cart, use something along these lines (assuming upload field name is "upload"):
+
+````twig
+{% if item.properties.upload_upload_original %}
+    <br>🔗 <a href="{{ item.properties.upload_upload_full }}" download="{{ item.properties.upload_upload_original }}">{{ item.properties.upload_upload_original }}</a>
+{% endif %}
+````
+
+The item properties will contain the following 3 keys for each uploaded file:
+- `upload_{upload_key}`: the sanitised file name as it exists now in the media source
+- `upload_{upload_key}_original`: the original file name
+- `upload_{upload_key}_full`: the full file path for where the file was uploaded
+
 ## Security
 
 The module includes several security measures:
