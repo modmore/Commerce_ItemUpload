@@ -501,7 +501,7 @@ class ItemUpload extends BaseModule
 
         // Media source (required)
         $mediaSources = [];
-        $sources = $this->adapter->getIterator('modMediaSource');
+        $sources = $this->adapter->getIterator('sources.modMediaSource');
         foreach ($sources as $source) {
             $mediaSources[] = [
                 'value' => $source->get('id'),
