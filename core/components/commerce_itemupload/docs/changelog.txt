@@ -1,3 +1,9 @@
+ItemUpload for Commerce 1.0.2-pl
+---------------------------------
+Released on 2026-02-09
+
+- Fix media source not loading in the upload handling on MODX 3
+
 ItemUpload for Commerce 1.0.1-pl
 ---------------------------------
 Released on 2026-02-05

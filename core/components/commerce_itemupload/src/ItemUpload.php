@@ -296,7 +296,7 @@ class ItemUpload extends BaseModule
         $mediaSourceId = $this->getConfig('media_source');
         if (!empty($mediaSourceId)) {
             /** @var \modMediaSource $source */
-            $source = $this->adapter->getObject('modMediaSource', $mediaSourceId);
+            $source = $this->adapter->getObject('sources.modMediaSource', $mediaSourceId);
             if ($source) {
                 $source->initialize();
                 $this->mediaSource = $source;
