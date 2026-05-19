@@ -1,3 +1,10 @@
+ItemUpload for Commerce 1.1.0-pl
+---------------------------------
+Released on 2026-05-19
+
+- Add support for the multi-product add to cart form syntax [S64412]
+- When adding multiple products at once with a global upload, it is now only uploaded once, but still added to each order item
+
 ItemUpload for Commerce 1.0.2-pl
 ---------------------------------
 Released on 2026-02-09

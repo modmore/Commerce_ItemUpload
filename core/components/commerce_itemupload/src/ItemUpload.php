@@ -22,6 +22,14 @@ class ItemUpload extends BaseModule
     /** @var string|null Cached base path from media source */
     protected $mediaSourceBasePath = null;
 
+    /**
+     * Cached flat (top-level) upload results for the current request, keyed by fieldName:tmp_name.
+     * Prevents duplicate media-source files when one upload is shared across multiple cart lines.
+     *
+     * @var array<string, array{success: bool, path?: string, original_name?: string, error?: string}>
+     */
+    protected static $processedFlatUploads = [];
+
     public function getName()
     {
         $this->adapter->loadLexicon('commerce_itemupload:default');
@@ -54,38 +62,33 @@ class ItemUpload extends BaseModule
     }
 
     /**
-     * Handles the EVENT_ITEM_ADDED_TO_CART event to process uploads
-     * Directly processes $_FILES to have full control over what is accepted
+     * Handles the EVENT_ITEM_ADDED_TO_CART event to process uploads.
      *
      * @param Item $event
      */
     public function handleItemAddedToCart(Item $event)
     {
         $item = $event->getItem();
-
-        // Get configured upload field names
+        $productId = (int)$item->get('product');
         $uploadFields = $this->getUploadFieldNames();
 
-        // Process each configured upload field
         foreach ($uploadFields as $fieldName) {
-            // Check if a file was uploaded for this field
-            if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+            $nestedFile = $this->getUploadedFileFromProductsArray($productId, $fieldName);
+            $file = $this->resolveUploadedFile($productId, $fieldName);
+
+            if ($file === null) {
                 continue;
             }
 
-            $file = $_FILES[$fieldName];
-
-            // Process the upload
-            $result = $this->processUpload($fieldName, $file);
+            if ($nestedFile !== null) {
+                $result = $this->processUpload($fieldName, $file);
+            } else {
+                $result = $this->getOrProcessFlatUpload($fieldName, $file);
+            }
 
             if ($result['success']) {
-                // Store the file path in item properties
-                $item->setProperty('upload_' . $fieldName, $result['path']);
-                $item->setProperty('upload_' . $fieldName . '_full', $this->getFileUrl($result['path']));
-                $item->setProperty('upload_' . $fieldName . '_original', $result['original_name']);
-                $item->save();
+                $this->applyUploadResultToItem($item, $fieldName, $result);
             } else {
-                // Log the error
                 $this->adapter->log(
                     \modX::LOG_LEVEL_ERROR,
                     $this->adapter->lexicon('commerce_itemupload.error.upload_failed', [
@@ -95,6 +98,147 @@ class ItemUpload extends BaseModule
                 );
             }
         }
+    }
+
+    /**
+     * Resolves an uploaded file for a cart line: per-product nested field first, then flat top-level field.
+     *
+     * @param int $productId
+     * @param string $fieldName
+     * @return array|null Standard $_FILES entry, or null when no valid upload
+     */
+    protected function resolveUploadedFile($productId, $fieldName)
+    {
+        return $this->getUploadedFileFromProductsArray($productId, $fieldName)
+            ?? $this->getFlatUploadedFile($fieldName);
+    }
+
+    /**
+     * Reads a per-product upload from products[{id}][{field}] (Commerce multi-product add-to-cart form).
+     *
+     * @param int $productId
+     * @param string $fieldName
+     * @return array|null
+     */
+    protected function getUploadedFileFromProductsArray($productId, $fieldName)
+    {
+        if (!isset($_FILES['products']) || !is_array($_FILES['products'])) {
+            return null;
+        }
+
+        $files = $_FILES['products'];
+        if (!isset($files['error']) || !is_array($files['error'])) {
+            return null;
+        }
+
+        // Keys may include spaces from MODX bracket syntax (e.g. products[ [[+id]] ][upload]).
+        foreach ($files['error'] as $idKey => $fields) {
+            if (!$this->productIdsMatch($idKey, $productId) || !is_array($fields)) {
+                continue;
+            }
+
+            foreach ($fields as $fieldKey => $error) {
+                if (!$this->fieldNamesMatch($fieldKey, $fieldName) || $error !== UPLOAD_ERR_OK) {
+                    continue;
+                }
+
+                return [
+                    'name' => $files['name'][$idKey][$fieldKey],
+                    'type' => $files['type'][$idKey][$fieldKey],
+                    'tmp_name' => $files['tmp_name'][$idKey][$fieldKey],
+                    'error' => $files['error'][$idKey][$fieldKey],
+                    'size' => $files['size'][$idKey][$fieldKey],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a $_FILES products-array key matches a Commerce product ID (trimmed, like addProductToCart).
+     *
+     * @param mixed $formKey
+     * @param int $productId
+     * @return bool
+     */
+    protected function productIdsMatch($formKey, $productId)
+    {
+        return (int)trim((string)$formKey) === $productId;
+    }
+
+    /**
+     * Whether a nested $_FILES field key matches a configured upload field name.
+     *
+     * @param mixed $formKey
+     * @param string $fieldName
+     * @return bool
+     */
+    protected function fieldNamesMatch($formKey, $fieldName)
+    {
+        return $this->normalizeFormArrayKey($formKey) === $this->normalizeFormArrayKey($fieldName);
+    }
+
+    /**
+     * Normalizes bracket notation keys from MODX forms (spaces, surrounding quotes).
+     *
+     * @param mixed $key
+     * @return string
+     */
+    protected function normalizeFormArrayKey($key)
+    {
+        return trim((string)$key, " \t\n\r\0\x0B'\"");
+    }
+
+    /**
+     * Reads a top-level upload field (single-product add-to-cart form).
+     *
+     * @param string $fieldName
+     * @return array|null
+     */
+    protected function getFlatUploadedFile($fieldName)
+    {
+        if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+
+        return $_FILES[$fieldName];
+    }
+
+    /**
+     * Processes a flat upload once per request and reuses the result for subsequent cart lines.
+     *
+     * @param string $fieldName
+     * @param array $file
+     * @return array
+     */
+    protected function getOrProcessFlatUpload($fieldName, array $file)
+    {
+        $cacheKey = $fieldName . ':' . $file['tmp_name'];
+
+        if (array_key_exists($cacheKey, self::$processedFlatUploads)) {
+            return self::$processedFlatUploads[$cacheKey];
+        }
+
+        $result = $this->processUpload($fieldName, $file);
+        self::$processedFlatUploads[$cacheKey] = $result;
+
+        return $result;
+    }
+
+    /**
+     * Stores upload metadata on an order item.
+     *
+     * @param \comOrderItem $item
+     * @param string $fieldName
+     * @param array $result Successful processUpload() result
+     */
+    protected function applyUploadResultToItem($item, $fieldName, array $result)
+    {
+        $item->setProperty('upload_' . $fieldName, $result['path']);
+        $item->setProperty('upload_' . $fieldName . '_full', $this->getFileUrl($result['path']));
+        $item->setProperty('upload_' . $fieldName . '_original', $result['original_name']);
+        $item->save();
     }
 
     /**

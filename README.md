@@ -53,6 +53,30 @@ The module will automatically:
 
 **Note:** The field name(s) used in your form must match the configured "Upload Field Names" in the module settings (default: "upload").
 
+### Multiple products in one form
+
+When adding several products in a single submit (Commerce [multiple products form](https://docs.modmore.com/en/Commerce/v1/Product_Catalog/Add_to_Cart_Form.html)), use a per-product file field so each line can have its own upload:
+
+```html
+<form method="post" enctype="multipart/form-data" action="[[~cart]]">
+    <input type="hidden" name="add_to_cart" value="1" />
+
+    <input type="number" name="products[123][quantity]" value="1" />
+    <input type="file" name="products[123][upload]" />
+
+    <input type="number" name="products[456][quantity]" value="1" />
+    <input type="file" name="products[456][upload]" />
+
+    <button type="submit">Add to Cart</button>
+</form>
+```
+
+Replace `123` and `456` with your product record IDs. The field name (`upload` in the example) must still match your configured upload field names.
+
+MODX-friendly bracket spacing is supported, e.g. `products[ [[+id]] ][upload]` or `products[ [[+id]] ]['upload']`, matching how Commerce trims product keys from `$_POST`.
+
+If you use a single top-level file field (e.g. `name="upload"`) with a multi-product form, the file is uploaded to the media source **once**, but the same stored file is linked on **every** cart line added in that request. Each line item gets the upload properties (`upload_upload`, `upload_upload_full`, etc.) pointing at that one file.
+
 ### Email Attachments
 
 The module automatically attaches uploaded files to order emails based on the configured message keys. Files are attached when:
